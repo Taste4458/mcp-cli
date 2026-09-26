@@ -547,7 +547,7 @@ fn tool_definitions() -> Value {
                             "type": "object",
                             "properties": {
                                 "method": {"type": "string", "description": "Daemon RPC method (e.g. 'fs.read', 'search.grep'). Nested 'pipe' is rejected."},
-                                "params": {"description": "Daemon RPC params for this method. May contain {\"$ref\": \"$N.<jsonpath>\"} or {\"$ref\": \"$item.<jsonpath>\"} substitutions."},
+                                "params": {"type": "object", "additionalProperties": true, "description": "Daemon RPC params for this method. May contain {\"$ref\": \"$N.<jsonpath>\"} or {\"$ref\": \"$item.<jsonpath>\"} substitutions."},
                                 "for_each": {"type": "string", "description": "JSONPath against a prior step result. Step runs once per matched node with $item bound."},
                                 "continue_on_error": {"type": "boolean", "default": false, "description": "Keep later steps running if this one fails."},
                                 "concurrency": {"type": "integer", "minimum": 1, "default": 8, "description": "Concurrency cap for for_each fan-out. Clamped to 64."}
@@ -560,4 +560,23 @@ fn tool_definitions() -> Value {
             }
         }
     ])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tool_definitions;
+
+    #[test]
+    fn pipe_params_publish_an_explicit_object_schema() {
+        let definitions = tool_definitions();
+        let pipe = definitions
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == "pipe")
+            .unwrap();
+        let params = &pipe["inputSchema"]["properties"]["steps"]["items"]["properties"]["params"];
+        assert_eq!(params["type"], "object");
+        assert_eq!(params["additionalProperties"], true);
+    }
 }
